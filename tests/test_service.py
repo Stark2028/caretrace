@@ -30,6 +30,10 @@ class ServiceTests(unittest.TestCase):
         home = self.client.get("/")
         self.assertIn("https://cdn.jsdelivr.net", docs.headers["content-security-policy"])
         self.assertNotIn("'unsafe-inline'", home.headers["content-security-policy"])
+        spec = self.client.get("/openapi.json").json()
+        body = spec["paths"]["/api/v1/extract"]["post"]["requestBody"]
+        self.assertTrue(body["required"])
+        self.assertIn("transcript", body["content"]["application/json"]["schema"]["required"])
 
     def test_rate_limit_expires_and_bounds_clients(self):
         limiter = RateLimiter(limit=2, window=10, capacity=2)

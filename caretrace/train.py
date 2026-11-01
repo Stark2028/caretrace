@@ -95,7 +95,10 @@ def main():
                 hidden = model.model(input_ids=ids, use_cache=False).last_hidden_state
                 logits = model.lm_head(hidden[:, len(prompt_ids) - 1:-1, :])
                 loss = torch.nn.functional.cross_entropy(logits.reshape(-1, logits.shape[-1]).float(), target)
-            scaler.scale(loss / args.gradient_accumulation).backward()
+            # A final partial accumulation window must average its actual examples.
+            window_start = (index // args.gradient_accumulation) * args.gradient_accumulation
+            window_size = min(args.gradient_accumulation, len(examples) - window_start)
+            scaler.scale(loss / window_size).backward()
             if (index + 1) % args.gradient_accumulation == 0 or index + 1 == len(examples):
                 scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 1.0)

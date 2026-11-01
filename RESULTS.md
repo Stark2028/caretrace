@@ -42,6 +42,8 @@ Training used 43 eligible encounters after excluding 19 of 62 training encounter
 
 This earlier exploratory comparison used a different prompt and a token threshold of 0.5 without the current digit-string constraint. It cannot be compared numerically with the later experiments. Its original artifacts are preserved under `results/exploratory/`.
 
+A final code review also corrected future training runs to normalize the last partial gradient-accumulation window by its actual size. The historical 43-example run divided its final three-example window by four. Its saved artifact and negative result remain unchanged; current code should not be presented as that historical training implementation.
+
 ## What the scores mean
 
 A predicted/reference pair is eligible when types agree, description token F1 is at least 0.67, and extracted digit strings agree. Eligible pairs are greedily matched one-to-one; precision, recall, and F1 are micro-aggregated. Paraphrases and written-out numbers can be missed, while semantically wrong partial matches can pass. This is not the official shared-task metric.

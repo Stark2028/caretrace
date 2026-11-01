@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
-from .contracts import parse_turns
+from .contracts import MAX_TEXT_CHARS, parse_turns
 from .engine import create_engine
 
 WEB = Path(__file__).resolve().parent.parent / "web"
@@ -85,7 +85,13 @@ def create_app(engine=None) -> FastAPI:
             raise HTTPException(503, "Model is not ready.")
         return {"status": "ready", "engine": request.app.state.engine.name}
 
-    @app.post("/api/v1/extract")
+    @app.post("/api/v1/extract", openapi_extra={
+        "requestBody": {"required": True, "content": {"application/json": {
+            "schema": {"type": "object", "required": ["transcript"], "properties": {
+                "transcript": {"type": "string", "minLength": 1, "maxLength": MAX_TEXT_CHARS}}},
+            "example": {"transcript": "Patient: I stopped the tablets.\nDoctor: Order a blood test."}
+        }}}
+    })
     async def extract(request: Request):
         if request.headers.get("content-type", "").split(";")[0].lower() != "application/json":
             raise HTTPException(415, "Send JSON with a transcript field.")
