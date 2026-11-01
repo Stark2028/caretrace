@@ -1,0 +1,45 @@
+{
+  "encounters": 19,
+  "baseline": {
+    "gold": 53,
+    "predicted": 59,
+    "matched": 11,
+    "evidence_hit": 6,
+    "evidence_gold": 13,
+    "evidence_predicted": 30,
+    "invalid_reference_evidence": 12,
+    "unlinked": 0,
+    "encounters": 19,
+    "precision_proxy": 0.1864406779661017,
+    "recall_proxy": 0.20754716981132076,
+    "f1_proxy": 0.19642857142857145,
+    "reference_id_overlap_precision_diagnostic": 0.2,
+    "reference_id_overlap_recall_diagnostic": 0.46153846153846156
+  },
+  "candidate": {
+    "gold": 53,
+    "predicted": 66,
+    "matched": 16,
+    "evidence_hit": 6,
+    "evidence_gold": 14,
+    "evidence_predicted": 22,
+    "invalid_reference_evidence": 12,
+    "unlinked": 1,
+    "encounters": 19,
+    "precision_proxy": 0.24242424242424243,
+    "recall_proxy": 0.3018867924528302,
+    "f1_proxy": 0.26890756302521013,
+    "reference_id_overlap_precision_diagnostic": 0.2727272727272727,
+    "reference_id_overlap_recall_diagnostic": 0.42857142857142855
+  },
+  "candidate_minus_baseline_f1_proxy": 0.07247899159663868,
+  "bootstrap_95pct_interval": [
+    -0.0659262802988883,
+    0.21111573657365743
+  ],
+  "bootstrap_samples": 1000,
+  "seed": 42,
+  "interpretation": "Encounter bootstrap of lexical proxy, not clinical accuracy; related encounters may not be independent.",
+  "baseline_sha256": "5c04844b5573a11afe73ff84944a3db69bc7dd8ad68f84c4c5a479f03f7be6a8",
+  "candidate_sha256": "5a14fe142a594721cc472c142a583a9d59335b34c1b56927f291a0f303140a60"
+}

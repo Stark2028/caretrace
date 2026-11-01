@@ -1,0 +1,18 @@
+{
+  "manifest.json": "cd4d16c602542b251806293d7494611a5e195efa4c3f5a561fcd60e96db4e5b5",
+  "data_audit.json": "6a89d20b6755da56678c7a0bcd6632b6595952f904dd788303f63d49841e01c9",
+  "partial_training_config.json": "63c4a689807b9c9716885a65901a22da2d9da334db33d9a90c6470e1afab922c",
+  "source_span_repair.json": "1c23cb715644b0c25dae4d8a588fe3d49cbab22231a8be15a4e9d7de5617c347",
+  "test1_comparison.json": "6fa51a6f1b395eb6842896aa3520a8cf6630861e537d30bc0087a380826f32e9",
+  "test2_comparison.json": "629d02f7bd443cd8e6797f4f4c44005c813a74fb5f59b10a349b00ac460cfd32",
+  "validation_3b_vs_7b.json": "dda8cc3318279e949c4307adab78a7500b845a1cc5f1833bd9e2f373511e0a10",
+  "rules_validation.json": "c568a59fbc5373aa367f0aa405a131e268218fedbe81737e12087ade0eceece1",
+  "ollama3b_validation.json": "a3e0b94fe9bcc50972d085f88bb410205533a244e28624f1d3b6a6f0a23639b8",
+  "ollama7b_validation.json": "3ce464c2943e19b9a06cf5c822c441b7ba39cd7fc21755bda2b6d584e042f0c5",
+  "rules_test2_frozen.json": "7f6007a0a0ae1b8ccd2c892bd641cb3db7139911e6354bf23655753ac42bef8b",
+  "ollama7b_test2_frozen.json": "cd98baa027996a8074c0c271894e41dccfbee61d2a48d6ca4b94b2d41a94bf6f",
+  "rules_test1_frozen.json": "10b811df4955666289d666ba199b65a913c5b45ebe7d8a45e1c0f57fbd431064",
+  "source_test1_frozen.json": "0c1bb277d1be923c7fc80f21682ea763acacc206069fa00398117aad6dd70788",
+  "exploratory/base_validation.json": "cf4d9801887fca8efae5f17f5507b2283be8252cb78b58b6c671b368d9846066",
+  "exploratory/partial_tuned_validation.json": "a80f301e52069a5ee7e7d48771c7c1a28213998e81a693a9985e43da888cb3bc"
+}

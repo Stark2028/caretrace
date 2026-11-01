@@ -1,0 +1,45 @@
+{
+  "encounters": 90,
+  "baseline": {
+    "gold": 226,
+    "predicted": 19,
+    "matched": 0,
+    "evidence_hit": 0,
+    "evidence_gold": 0,
+    "evidence_predicted": 0,
+    "invalid_reference_evidence": 70,
+    "unlinked": 0,
+    "encounters": 90,
+    "precision_proxy": 0.0,
+    "recall_proxy": 0.0,
+    "f1_proxy": 0.0,
+    "reference_id_overlap_precision_diagnostic": null,
+    "reference_id_overlap_recall_diagnostic": null
+  },
+  "candidate": {
+    "gold": 226,
+    "predicted": 166,
+    "matched": 29,
+    "evidence_hit": 2,
+    "evidence_gold": 21,
+    "evidence_predicted": 14,
+    "invalid_reference_evidence": 70,
+    "unlinked": 0,
+    "encounters": 90,
+    "precision_proxy": 0.1746987951807229,
+    "recall_proxy": 0.12831858407079647,
+    "f1_proxy": 0.14795918367346939,
+    "reference_id_overlap_precision_diagnostic": 0.14285714285714285,
+    "reference_id_overlap_recall_diagnostic": 0.09523809523809523
+  },
+  "candidate_minus_baseline_f1_proxy": 0.14795918367346939,
+  "bootstrap_95pct_interval": [
+    0.09178385874448221,
+    0.2090516545601291
+  ],
+  "bootstrap_samples": 1000,
+  "seed": 42,
+  "interpretation": "Encounter bootstrap of lexical proxy, not clinical accuracy; related encounters may not be independent.",
+  "baseline_sha256": "ce6d352281d87cc1485b903e027f30380b96748fdfd763f71b9bd28bf2c4bd1e",
+  "candidate_sha256": "7795735247706f12b2676290a5a5148c16d3435b2de307dbda32da4093910eab"
+}

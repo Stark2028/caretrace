@@ -1,0 +1,32 @@
+{
+  "gold": 53,
+  "predicted": 4,
+  "matched": 0,
+  "evidence_hit": 0,
+  "evidence_gold": 0,
+  "evidence_predicted": 0,
+  "invalid_reference_evidence": 12,
+  "unlinked": 0,
+  "encounters": 19,
+  "precision_proxy": 0.0,
+  "recall_proxy": 0.0,
+  "f1_proxy": 0.0,
+  "evidence_precision_on_matched": null,
+  "evidence_recall_on_matched": null,
+  "split": "validation",
+  "limited": false,
+  "engine": "transformers:checkpoints/full_epoch1/model",
+  "parse_or_input_failures": 0,
+  "model_revision": null,
+  "model_artifact_sha256": "a86255cbcf8834ef8690b8856eabc7dec0a748f111f9d45d5a385133131eb7c0",
+  "manifest_sha256": "cd4d16c602542b251806293d7494611a5e195efa4c3f5a561fcd60e96db4e5b5",
+  "elapsed_seconds": 16.31,
+  "versions": {
+    "datasets": "2.21.0",
+    "transformers": "4.50.3",
+    "torch": "2.12.0"
+  },
+  "code_commit": "63b6a55a304d728e339460c815105410dc5875be",
+  "code_dirty": false,
+  "metric_note": "Type plus token-F1 >= 0.5; greedy one-to-one matching. Not clinical accuracy."
+}

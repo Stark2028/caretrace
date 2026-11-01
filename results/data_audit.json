@@ -1,0 +1,41 @@
+{
+  "train_validation": {
+    "train": {
+      "encounters": 62,
+      "parse_failures": 0,
+      "orders": 154,
+      "order_types": {
+        "medication": 71,
+        "imaging": 22,
+        "lab": 36,
+        "followup": 25
+      },
+      "orders_without_evidence": 0,
+      "orders_with_unknown_turns": 39,
+      "encounters_with_invalid_evidence": 19
+    },
+    "validation": {
+      "encounters": 19,
+      "parse_failures": 0,
+      "orders": 53,
+      "order_types": {
+        "lab": 19,
+        "imaging": 7,
+        "medication": 22,
+        "followup": 5
+      },
+      "orders_without_evidence": 0,
+      "orders_with_unknown_turns": 12,
+      "encounters_with_invalid_evidence": 6
+    }
+  },
+  "exact_normalized_input_hash_overlaps": {
+    "train__validation": 0,
+    "train__test1": 0,
+    "train__test2": 0,
+    "validation__test1": 0,
+    "validation__test2": 0,
+    "test1__test2": 0
+  },
+  "test_annotation_access": false
+}

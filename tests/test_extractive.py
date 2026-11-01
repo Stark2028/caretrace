@@ -24,6 +24,12 @@ class ExtractiveTests(unittest.TestCase):
         self.assertEqual([item["order_type"] for item in result], ["lab", "medication"])
         self.assertTrue(result[1]["description"].startswith("Stop"))
 
+    def test_followup_offsets_exclude_trimmed_whitespace(self):
+        turns = parse_turns("Doctor: Come back in two weeks   .")
+        item = ExtractiveEngine().extract(turns)[0]
+        span = item["source_span"]
+        self.assertEqual(turns[0].text[span["start"]:span["end"]], item["description"])
+
 
 if __name__ == "__main__":
     unittest.main()

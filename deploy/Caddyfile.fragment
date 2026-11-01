@@ -1,0 +1,12 @@
+# Append to the existing proxy configuration; preserve its other sites.
+caretrace.65.0.103.235.sslip.io {
+    encode zstd gzip
+    request_body {
+        max_size 64KB
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+    reverse_proxy caretrace-api:8000
+}

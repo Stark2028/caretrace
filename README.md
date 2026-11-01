@@ -1,31 +1,76 @@
 # CareTrace
 
-**A research workspace for extracting proposed orders from simulated clinical conversations and reviewing their source turns.** CareTrace combines a bounded FastAPI service, an evidence review interface, and a reproducible benchmark on simulated consultations.
+**Clinical order extraction with inspectable source evidence.**
 
-> **Research prototype:** The default app uses a deliberately limited rule baseline. It is not a clinical device, does not diagnose or prescribe, and has not been validated on real patient encounters. Do not enter patient information.
+[![Checks](https://github.com/Stark2028/caretrace/actions/workflows/checks.yml/badge.svg)](https://github.com/Stark2028/caretrace/actions/workflows/checks.yml)
+[![License: MIT](https://img.shields.io/badge/code-MIT-236c59)](LICENSE)
 
-![CareTrace review workspace showing simulated dialogue, proposed orders, and highlighted source turns](docs/review-workspace.png)
+[Live workspace](https://caretrace.65.0.103.235.sslip.io) · [API docs](https://caretrace.65.0.103.235.sslip.io/docs) · [Measured results](RESULTS.md) · [Research method](docs/METHODOLOGY.md)
 
-## What it does
+CareTrace turns simulated consultation text into candidate medication, laboratory, imaging, and follow-up orders, then lets a reviewer inspect the associated conversation turns. It pairs a lightweight deployed application with local language-model experiments, dataset auditing, and frozen evaluation protocols.
 
-1. Accept a simulated transcript with one clinician or patient turn per line.
-2. Extract candidate medication, laboratory, imaging, or follow-up orders using a selected engine.
-3. Show the turn IDs supplied as evidence. Missing or unknown IDs are visibly flagged.
-4. Mark an item as accepted or flagged in the current browser session. Editing the transcript clears old results so evidence cannot silently become stale.
+> **Research prototype.** Extraction quality is limited and evidence annotations have known problems. Use invented or public simulated dialogue only. This project has not been validated for patient care and does not diagnose or prescribe.
 
-An evidence link establishes that a referenced turn exists; **it does not establish that the order is correct or supported**. Review marks are ephemeral and are not an audit trail.
+![CareTrace workspace with a simulated consultation, proposed orders, and highlighted source evidence](docs/review-workspace.png)
 
-## Research question
+## Why this project
 
-Can a small language model extract actionable orders and their supporting turns from simulated consultation transcripts more effectively than a transparent rule baseline? The study is inspired by [MEDIQA-OE 2025](https://aclanthology.org/2025.clinicalnlp-1.2/) and uses a pinned [SIMORD mirror](https://huggingface.co/datasets/mkieffer/SIMORD). It is a separate NLP task from [Medical Speech Lab](https://github.com/Stark2028/medical-speech-lab), which studies short-clip speech recognition.
+A clinical documentation pipeline needs to distinguish a current clinician action from patient history, a hypothetical plan, or a declined treatment. Well-formed JSON alone cannot make that distinction. CareTrace studies that problem through [MEDIQA-OE](https://aclanthology.org/2025.clinicalnlp-1.2/)-inspired order extraction and makes its failure modes visible.
 
-The mirror's advertised train/test split is used with a deterministic validation partition drawn from its training split: **62 train, 19 validation, 90 test1, and 92 test2 encounters**. Test1 and test2 are reserved for evaluation. This split is not the original shared-task split; do not compare its numbers directly with the official leaderboard.
+The public demo uses a **source-preserving extractor**: its descriptions are literal conversation excerpts and its reason field is always null. It avoids generated descriptions in this mode, but can still misunderstand intent, miss orders, or assign the wrong type. Local Qwen model adapters support a separate generative research comparison.
 
-An audit found invalid evidence IDs in **39 of 154 training orders** and **12 of 53 validation orders**. Affected training encounters are excluded from evidence-supervised training. Manual inspection also found an in-range reference pointing to an unrelated turn, so the mirror cannot currently support a trustworthy evidence-accuracy claim. See [data audit](docs/DATA_AUDIT.md) and [methodology](docs/METHODOLOGY.md).
+## Try the workflow
+
+1. Open the [workspace](https://caretrace.65.0.103.235.sslip.io) and select **Load example**.
+2. Select **Extract orders**. The engine badge identifies the active method.
+3. Select **Turn 2** or another evidence link to inspect its source.
+4. Mark a candidate **Accept** or **Flag for review**. Marks exist only in page memory.
+5. Edit the transcript: old results and review marks are cleared to avoid stale evidence.
+
+An evidence link proves that a turn exists, **not that it supports the proposed order**. No output is automatically written to an EHR or treated as an approved order.
+
+## What was measured
+
+Scores below are percentages from a **lexical matching proxy**, not clinical accuracy or the official MEDIQA-OE metric.
+
+| Frozen experiment | Encounters | Precision | Recall | F1 proxy | Input/output failures |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Rules baseline, test2 | 92 | 0.00 | 0.00 | 0.00 | 4 |
+| Local Qwen2.5 7B, test2 | 92 | 15.65 | 21.20 | 18.00 | 5 |
+| Rules baseline, test1 | 90 | 0.00 | 0.00 | 0.00 | 0 |
+| Source extractor, test1 | 90 | 17.47 | 12.83 | 14.80 | 0 |
+
+These are weak absolute results against a weak baseline. Test1 and test2 are different sets; the table does **not** establish a ranking between the source extractor and 7B model. A small-model partial fine-tuning experiment also failed to demonstrate extraction improvement. All are retained in [RESULTS.md](RESULTS.md), including version hashes, uncertainty estimates, parser failures, and a post-test source-offset repair.
+
+The data audit found invalid evidence IDs in **39 of 154 training orders** and **12 of 53 validation orders**, plus an in-range reference pointing to an unrelated turn during manual inspection. Evidence-ID overlap is therefore reported only as an unvalidated diagnostic. The meaningful engineering outcome is an inspectable review workflow and reproducible failure analysis; the current evidence does not support clinical reliability.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Simulated dialogue] --> B[FastAPI: bounded request and speaker parsing]
+    B --> C{Configured engine}
+    C --> D[Source excerpts: public demo]
+    C --> E[Local Ollama or Transformers: optional]
+    D --> F[Schema validation and turn-ID checks]
+    E --> F
+    F --> G[Review UI: orders and source turns]
+    H[Pinned SIMORD mirror and split manifest] --> I[Audit / train / evaluate]
+    I --> J[Aggregate results and artifact hashes]
+```
+
+| Component | Implementation |
+| --- | --- |
+| Service | Python, FastAPI, Uvicorn; same-origin static interface |
+| Review UI | HTML, CSS, JavaScript; keyboard controls and responsive layout |
+| Default extraction | Deterministic patterns with verbatim character spans; no model download |
+| Optional models | Qwen2.5 3B/7B via local Ollama; pinned 0.5B via Transformers/PyTorch |
+| Research | Dataset and prompt hashes, split checks, failure accounting, paired encounter bootstrap |
+| Deployment | Docker on shared AWS EC2, Caddy HTTPS, constrained non-root container |
 
 ## Run locally
 
-Python 3.12 is recommended. The default rule engine needs no model download or GPU.
+Python 3.12 is recommended. The default source extractor needs no GPU, credentials, or model download.
 
 ```powershell
 python -m venv .venv
@@ -35,9 +80,7 @@ python -m unittest discover -s tests -v
 uvicorn caretrace.service:app --host 127.0.0.1 --port 8000
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000), choose **Load example**, and select **Extract orders**. The interface identifies the active engine. API documentation is available at `/docs`.
-
-### API
+Open [localhost:8000](http://127.0.0.1:8000). API documentation is at `/docs`; liveness and readiness are at `/health/live` and `/health/ready`. On Linux/macOS activate the environment with `source .venv/bin/activate`.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/extract \
@@ -45,48 +88,92 @@ curl -X POST http://127.0.0.1:8000/api/v1/extract \
   -d '{"transcript":"Patient: I stopped the tablets.\nDoctor: We will arrange a blood test."}'
 ```
 
-The response contains the engine, candidate orders, evidence turn IDs, an evidence status, and a research-only flag. Requests are limited to 64 KiB and 300 turns; the process handles one extraction at a time. The service does not persist transcripts or review decisions. It is a low-traffic research demo with no authentication or audit log; do not expose it for clinical use.
+The response names the engine and returns `orders`, `research_only`, and a review note. Each order has a type, description, optional reason, provenance IDs, and evidence status. Source mode additionally returns a zero-based, end-exclusive `source_span` relative to the parsed turn text. It does not infer unstated doses or reasons.
 
-## Reproduce the experiments
+The service accepts at most **64 KiB / 40,000 characters / 300 turns**, allows one extraction at a time, and applies a bounded per-process request limiter. It does not persist transcripts or review marks. See [data handling and security](SECURITY.md) for operational limits.
 
-Install a [CUDA-enabled PyTorch build](https://pytorch.org/get-started/locally/) suitable for your machine, then install `requirements-ml.txt`. The pinned model for the partial fine-tuning experiment is [`Qwen/Qwen2.5-0.5B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) at `7ae557604adf67be50417f59c2c2f167def9a775`. The dataset revision is `a5e570d7512cd36e64b6e4b03d2800ee6fcec86b`.
-
-```bash
-python -m pip install -r requirements-ml.txt
-python -m caretrace.data --out runs/manifest.json
-python -m caretrace.audit --manifest runs/manifest.json --out runs/audit.json
-python -m caretrace.evaluate --manifest runs/manifest.json --split validation --engine rules --out runs/rules_validation
-python -m caretrace.evaluate --manifest runs/manifest.json --split validation --engine Qwen/Qwen2.5-0.5B-Instruct --out runs/base_validation
-python -m caretrace.train --manifest runs/manifest.json --out checkpoints/partial --epochs 1
-python -m caretrace.evaluate --manifest runs/manifest.json --split validation --engine checkpoints/partial/model --out runs/tuned_validation
-```
-
-Training updates only the final Transformer block and final normalization layer; it is **partial fine-tuning**, not LoRA. It excludes encounters with out-of-range or missing reference evidence and records exclusions, settings, GPU, model revision, and peak memory. Context-length exclusions are also recorded. Run a small smoke check with `--limit 4` first, using a different output directory.
-
-Select and freeze the method using validation only. Then `--split test2 --final-test` scores the full held-out split; `--limit` is prohibited on test splits. The automated score is a **lexical matching proxy**, not clinical accuracy or the official MEDIQA-OE score. The [test protocol](docs/TEST_PROTOCOL.md) fixes the selected model, prompt, and metric; details and results are in [RESULTS.md](RESULTS.md).
-
-To run a local Transformers engine, install both the service and ML dependencies plus PyTorch, then set `CARETRACE_MODEL` to the pinned base model ID or a saved checkpoint directory before starting Uvicorn. The model can produce malformed JSON; those failures are reported, not replaced with invented orders.
-
-An optional local Ollama adapter supports `qwen2.5:3b` and `qwen2.5:7b`. Install the ML dependencies, make the chosen model available to Ollama, start Ollama on loopback, and set `CARETRACE_MODEL=ollama:qwen2.5:3b` (or `ollama:qwen2.5:7b`). `CARETRACE_OLLAMA_URL` defaults to `http://127.0.0.1:11434` and rejects remote hosts. The adapter checks prompt length using the pinned Qwen tokenizer and asks Ollama for schema-constrained JSON. It records the local model digest during evaluation. Schema compliance and valid turn numbers do **not** guarantee factual correctness. The standard Docker image runs the rule baseline and includes no model weights.
-
-## Container
+### Docker
 
 ```bash
 docker compose up --build
 ```
 
-The container listens on `127.0.0.1:8000`, runs as a non-root user with a read-only filesystem, and has a health check and resource limits. For a public demo, add TLS and access controls appropriate to the environment; the in-memory limiter is per process and uses the client address reported by the server. No cloud deployment is configured or implied.
+This publishes only `127.0.0.1:8000`. The image contains the source extractor and no model weights. The [shared-host configuration](deploy/compose.shared.yaml) uses a proxy-only network, a 256 MiB memory limit, half a CPU, a read-only root filesystem, no Linux capabilities, and bounded logs. See the [deployment runbook](docs/DEPLOYMENT.md) for health checks, upgrades, rollback, and the distinction between a research deployment and clinical production.
 
-## Repository guide
+## Reproduce the research
+
+Install a [CUDA-enabled PyTorch build](https://pytorch.org/get-started/locally/) appropriate to your system, then `pip install -r requirements-ml.txt`. Dataset/model downloads require network access and disk space. A local NVIDIA GPU was used for model experiments; the deployed source mode is CPU-only.
+
+```bash
+python -m caretrace.data --out runs/manifest.json
+python -m caretrace.audit --manifest runs/manifest.json --out runs/audit.json
+python -m caretrace.evaluate --manifest runs/manifest.json --split validation --engine rules --out runs/rules_validation
+python -m caretrace.evaluate --manifest runs/manifest.json --split validation --engine source --out runs/source_validation
+```
+
+The pinned mirror revision is `a5e570d7512cd36e64b6e4b03d2800ee6fcec86b`. The deterministic partitions contain **62 train, 19 validation, 90 test1, and 92 test2 encounters**. The mirror repartitions the original dataset; published leaderboard numbers are not comparable. Existing aggregate artifacts are in [results/](results/README.md); raw predictions, transcripts, caches, and weights are not committed.
+
+### Local structured model
+
+Make `qwen2.5:7b` available to [Ollama](https://docs.ollama.com/) and start its server on loopback. The adapter also supports `qwen2.5:3b`.
+
+```powershell
+$env:CARETRACE_MODEL='ollama:qwen2.5:7b'
+# Optional: defaults to http://127.0.0.1:11434
+$env:CARETRACE_OLLAMA_URL='http://127.0.0.1:11434'
+uvicorn caretrace.service:app --host 127.0.0.1 --port 8000
+```
+
+The adapter rejects remote endpoints, bypasses HTTP proxies, checks prompt length with the pinned Qwen tokenizer, and uses schema-constrained JSON, temperature 0, seed 42, an 8,192-token context, and a 768-token output limit. Evaluations record the local model digest. A model tag alone is not a reproducible artifact. Schema compliance does not guarantee factual correctness. This mode is **not hosted by the public demo**; the shared instance is too small for the 7B model.
+
+### Partial fine-tuning and held-out evaluation
+
+```bash
+python -m caretrace.train --manifest runs/manifest.json --out checkpoints/partial --epochs 1
+python -m caretrace.evaluate --manifest runs/manifest.json --split validation --engine checkpoints/partial/model --out runs/tuned_validation
+python -m caretrace.evaluate --manifest runs/manifest.json --split test2 --final-test --engine ollama:qwen2.5:7b --out runs/7b_test2
+python -m caretrace.evaluate --manifest runs/manifest.json --split test2 --final-test --engine rules --out runs/rules_test2
+python -m caretrace.compare --baseline runs/rules_test2/predictions.jsonl --candidate runs/7b_test2/predictions.jsonl --out runs/comparison.json
+```
+
+The training experiment updates only the final Transformer block and normalization layer of pinned `Qwen/Qwen2.5-0.5B-Instruct`: **14.91M parameters**, 43 eligible training examples, one epoch. This is partial fine-tuning, not LoRA, and it did not establish a quality gain. A small smoke run can use `--limit 4` in a separate output directory.
+
+Evaluation refuses to overwrite artifacts and prohibits test-set limits. Freeze selection on validation before testing; do not repeatedly tune against either scored holdout. The historical test2 run used an older parser and retains its failures. Running current code can differ; [protocols](docs/TEST_PROTOCOL.md), [source protocol](docs/SOURCE_PROTOCOL.md), and [results](RESULTS.md) identify the frozen commits.
+
+## Quality checks
+
+```bash
+python -m compileall -q caretrace tests
+python -m unittest discover -s tests -v
+pip install -r requirements-browser.txt
+python -m playwright install chromium
+# With the local server running:
+python scripts/browser_smoke.py --url http://127.0.0.1:8000
+```
+
+CI runs offline tests, browser workflow checks, and a built-container smoke check. Coverage focuses on speaker/ID parsing, dose-sensitive matching, invalid evidence, request limits, source-span integrity, desktop/mobile review, and stale-result invalidation. GPU benchmarks are intentionally separate from ordinary CI.
+
+## Repository map
 
 | Path | Purpose |
 | --- | --- |
-| `caretrace/contracts.py` | Transcript parsing, response validation, and evidence status |
-| `caretrace/engine.py` | Rule baseline and optional local Transformers engine |
-| `caretrace/data.py`, `audit.py` | Pinned dataset, split manifest, and evidence audit |
-| `caretrace/train.py`, `evaluate.py`, `metrics.py`, `compare.py` | Partial fine-tuning, evaluation, and paired comparison |
-| `caretrace/service.py`, `web/` | Bounded API and evidence review interface |
-| `tests/` | Offline tests for parsing, matching, API limits, and review behavior |
-| `docs/` | Data provenance, method, and deployment context |
+| `caretrace/contracts.py` | Speaker parsing, prompting, schema and evidence validation |
+| `caretrace/extractive.py`, `engine.py` | Source mode, narrow baseline, optional model adapters |
+| `caretrace/data.py`, `audit.py` | Pinned data, deterministic split, evidence and overlap audit |
+| `caretrace/train.py`, `evaluate.py`, `metrics.py`, `compare.py` | Experiments, scoring, failure accounting, uncertainty |
+| `caretrace/service.py`, `web/` | API and review workspace |
+| `tests/`, `scripts/` | Offline tests and browser verification |
+| `results/`, `RESULTS.md` | Aggregate artifacts and interpretation |
+| `docs/`, `deploy/` | Method, annotation plan, deployment configuration |
 
-Downloaded data, checkpoints, caches, and raw model predictions are ignored by Git. This repository does not include source transcripts, patient data, or model weights. See [data provenance](docs/DATA_AUDIT.md) before sharing derived material.
+## Limits and next experiment
+
+The dataset is small and simulated; exact duplicate checks cannot rule out related encounters or model pretraining contamination. Lexical matching penalizes paraphrases and can accept semantic mistakes. Literal source spans cannot establish correct intent. There is no clinical expert validation, durable review log, authentication, or EHR integration.
+
+The next useful research step is an independently reviewed evidence set with adjudicated current actions, temporal context, and negation, followed by a new frozen holdout. The [annotation protocol](docs/ANNOTATION_PROTOCOL.md) specifies that work; it has not been completed.
+
+CareTrace complements [Medical Speech Lab](https://github.com/Stark2028/medical-speech-lab): that project studies speech recognition, while this one studies downstream clinical NLP and review. Neither project's benchmark validates an end-to-end clinical system.
+
+## Attribution
+
+Research context: [MEDIQA-OE 2025](https://aclanthology.org/2025.clinicalnlp-1.2/), [Microsoft SIMORD](https://huggingface.co/datasets/microsoft/SIMORD), the [pinned mirror](https://huggingface.co/datasets/mkieffer/SIMORD), and [ACI-Bench](https://pmc.ncbi.nlm.nih.gov/articles/PMC10482860/). Model: [Qwen2.5](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct). See [dataset provenance](docs/DATA_AUDIT.md) for licensing caveats. Repository code is [MIT licensed](LICENSE); third-party datasets and weights retain their own terms.

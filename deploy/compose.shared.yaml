@@ -1,0 +1,35 @@
+services:
+  caretrace:
+    build:
+      context: ..
+    image: caretrace:local
+    container_name: caretrace-api
+    environment:
+      CARETRACE_MODEL: source
+    command: ["uvicorn", "caretrace.service:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers", "--forwarded-allow-ips=*", "--timeout-keep-alive", "5", "--limit-concurrency", "32"]
+    expose:
+      - "8000"
+    networks:
+      shared:
+        aliases:
+          - caretrace-api
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+networks:
+  shared:
+    external: true
+    name: saga-agent_default

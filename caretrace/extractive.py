@@ -65,6 +65,12 @@ class ExtractiveEngine:
                         candidates.append((turn, "followup", match.group(0).strip(), match.start(), match.end()))
         result, seen = [], set()
         for turn, kind, fragment, start, end in candidates:
+            fragment = fragment.strip()
+            # Normalize the offsets after whitespace trimming, not only the displayed text.
+            start = turn.text.find(fragment, max(0, start))
+            if start < 0 or not fragment:
+                continue
+            end = start + len(fragment)
             key = (kind, fragment.lower())
             if key in seen:
                 continue

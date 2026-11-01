@@ -13,8 +13,31 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m compileall -q caretrace tests
       - run: python -m unittest discover -s tests -v
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt -r requirements-browser.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: |
+          python -m uvicorn caretrace.service:app --host 127.0.0.1 --port 8000 > /tmp/caretrace-server.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health/ready; then break; fi
+            sleep 1
+          done
+          python scripts/browser_smoke.py
   container:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t caretrace:test .
+      - run: |
+          docker run -d --name caretrace-smoke --read-only --tmpfs /tmp:size=32m --cap-drop ALL --security-opt no-new-privileges --memory 256m --pids-limit 64 -p 127.0.0.1:8000:8000 caretrace:test
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health/ready; then break; fi
+            sleep 1
+          done
+          curl --fail --silent -X POST http://127.0.0.1:8000/api/v1/extract -H 'Content-Type: application/json' -d '{"transcript":"Doctor: Order a blood test."}' | python -c 'import json,sys; r=json.load(sys.stdin); assert r["engine"]=="source-v1" and r["orders"][0]["order_type"]=="lab"'

@@ -1,0 +1,8 @@
+{
+  "encounters": 90,
+  "source_spans_checked": 166,
+  "source_spans_exact": 166,
+  "non_offset_prediction_fields_identical_to_frozen_run": true,
+  "frozen_predictions_sha256": "7795735247706f12b2676290a5a5148c16d3435b2de307dbda32da4093910eab",
+  "note": "Post-test whitespace offset repair. Input-only replay; no gold labels used. Frozen results retained."
+}
