@@ -67,7 +67,7 @@ Select and freeze the method using validation only. Then `--split test2 --final-
 
 To run a local Transformers engine, install both the service and ML dependencies plus PyTorch, then set `CARETRACE_MODEL` to the pinned base model ID or a saved checkpoint directory before starting Uvicorn. The model can produce malformed JSON; those failures are reported, not replaced with invented orders.
 
-An optional local Ollama adapter supports `qwen2.5:3b`. Install the ML dependencies, make that model available to Ollama, start Ollama on loopback, and set `CARETRACE_MODEL=ollama:qwen2.5:3b`. `CARETRACE_OLLAMA_URL` defaults to `http://127.0.0.1:11434` and rejects remote hosts. The adapter checks prompt length using the pinned Qwen tokenizer and asks Ollama for schema-constrained JSON. It records the local model digest during evaluation. Schema compliance and valid turn numbers do **not** guarantee factual correctness. The standard Docker image runs the rule baseline and includes no model weights.
+An optional local Ollama adapter supports `qwen2.5:3b` and `qwen2.5:7b`. Install the ML dependencies, make the chosen model available to Ollama, start Ollama on loopback, and set `CARETRACE_MODEL=ollama:qwen2.5:3b` (or `ollama:qwen2.5:7b`). `CARETRACE_OLLAMA_URL` defaults to `http://127.0.0.1:11434` and rejects remote hosts. The adapter checks prompt length using the pinned Qwen tokenizer and asks Ollama for schema-constrained JSON. It records the local model digest during evaluation. Schema compliance and valid turn numbers do **not** guarantee factual correctness. The standard Docker image runs the rule baseline and includes no model weights.
 
 ## Container
 

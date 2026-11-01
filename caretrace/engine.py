@@ -82,8 +82,8 @@ class OllamaEngine:
     """Loopback-only local Qwen inference with schema-constrained decoding."""
 
     def __init__(self, model: str):
-        if model != "qwen2.5:3b":
-            raise ValueError("The Ollama adapter currently supports qwen2.5:3b only.")
+        if model not in {"qwen2.5:3b", "qwen2.5:7b"}:
+            raise ValueError("The Ollama adapter supports qwen2.5:3b or qwen2.5:7b.")
         self.url = os.getenv("CARETRACE_OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
         parsed = urlsplit(self.url)
         if parsed.scheme != "http" or parsed.hostname not in {"localhost", "127.0.0.1", "::1"} or parsed.path or parsed.query or parsed.fragment or parsed.username:
