@@ -14,6 +14,8 @@ class ContractTests(unittest.TestCase):
         for text in ("1 [doctor] First\n1 [patient] Second", "hello there"):
             with self.assertRaises(ValueError):
                 parse_turns(text)
+        with self.assertRaises(ValueError):
+            parse_enumerated("1 [doctor] Hello\n2 [nurse] Unknown speaker")
 
     def test_unknown_or_missing_evidence_is_visible(self):
         turns = parse_turns("Doctor: Arrange a blood test.")

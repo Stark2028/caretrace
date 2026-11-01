@@ -53,6 +53,8 @@ def parse_enumerated(text: str) -> list[Turn]:
         if match:
             number, speaker, content = match.groups()
             turns.append(Turn(int(number), speaker.lower(), content.strip()))
+        elif re.match(r"^\s*\d+\s+\[[^]]+\]", line):
+            raise ValueError("Dataset contains an unsupported speaker label")
         elif line.strip() and turns:
             previous = turns[-1]
             turns[-1] = Turn(previous.id, previous.speaker, (previous.text + " " + line.strip()).strip())
@@ -69,8 +71,9 @@ SYSTEM = (
     "Return a JSON object with an orders array. Each order has order_type (medication, lab, "
     "imaging, or followup), description, reason (string or null), and provenance (list of "
     "integer turn numbers). Include supporting turns. Do not invent details or include "
-    "historical, stopped, rejected, or merely hypothetical orders. Include a medication only "
-    "if it is explicitly ordered or renewed. Do not infer a dose, timing, or clinical reason; "
+    "historical, rejected, or merely hypothetical orders. Include medications only when "
+    "explicitly started, renewed, changed, or stopped by the clinician; a patient's report "
+    "of a prior medication is not itself an order. Do not infer a dose, timing, or clinical reason; "
     "set reason to null unless explicitly stated. Cite turns supporting the action. "
     "If none, return {\"orders\":[]}."
 )

@@ -21,7 +21,7 @@ def token_f1(a: str, b: str) -> float:
     return 2 * overlap / (len(left) + len(right))
 
 
-def score_encounter(gold: list[dict], predicted: list[dict], threshold: float = 0.5,
+def score_encounter(gold: list[dict], predicted: list[dict], threshold: float = 0.67,
                     valid_turns: set[int] | None = None) -> dict:
     def reference_valid(item):
         ids = set(item.get("provenance") or [])
@@ -32,7 +32,9 @@ def score_encounter(gold: list[dict], predicted: list[dict], threshold: float = 
         for j, actual in enumerate(predicted):
             if expected["order_type"].replace("-", "") == actual["order_type"].replace("-", ""):
                 similarity = token_f1(expected["description"], actual["description"])
-                if similarity >= threshold:
+                reference_numbers = set(re.findall(r"\d+(?:\.\d+)?", expected["description"]))
+                predicted_numbers = set(re.findall(r"\d+(?:\.\d+)?", actual["description"]))
+                if similarity >= threshold and reference_numbers == predicted_numbers:
                     candidates.append((similarity, i, j))
     used_g, used_p, evidence_hit, evidence_total, evidence_pred = set(), set(), 0, 0, 0
     # Fixed greedy matching by highest lexical overlap; transparent but not semantic adjudication.
@@ -62,6 +64,6 @@ def aggregate(rows: list[dict]) -> dict:
     r = sums["matched"] / sums["gold"] if sums["gold"] else 0.0
     sums.update({"encounters": len(rows), "precision_proxy": p, "recall_proxy": r,
                  "f1_proxy": 2 * p * r / (p + r) if p + r else 0.0,
-                 "evidence_precision_on_matched": sums["evidence_hit"] / sums["evidence_predicted"] if sums["evidence_predicted"] else None,
-                 "evidence_recall_on_matched": sums["evidence_hit"] / sums["evidence_gold"] if sums["evidence_gold"] else None})
+                 "reference_id_overlap_precision_diagnostic": sums["evidence_hit"] / sums["evidence_predicted"] if sums["evidence_predicted"] else None,
+                 "reference_id_overlap_recall_diagnostic": sums["evidence_hit"] / sums["evidence_gold"] if sums["evidence_gold"] else None})
     return sums

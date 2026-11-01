@@ -25,6 +25,12 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/v1/extract", content=b"x", headers={"content-type": "text/plain"}).status_code, 415)
         self.assertEqual(self.client.post("/api/v1/extract", content=b"x" * 70000, headers={"content-type": "application/json"}).status_code, 413)
 
+    def test_openapi_ui_policy_allows_its_script_without_weakening_home(self):
+        docs = self.client.get("/docs")
+        home = self.client.get("/")
+        self.assertIn("https://cdn.jsdelivr.net", docs.headers["content-security-policy"])
+        self.assertNotIn("'unsafe-inline'", home.headers["content-security-policy"])
+
     def test_rate_limit_expires_and_bounds_clients(self):
         limiter = RateLimiter(limit=2, window=10, capacity=2)
         self.assertTrue(limiter.allow("a", 0))

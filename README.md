@@ -21,7 +21,7 @@ Can a small language model extract actionable orders and their supporting turns 
 
 The mirror's advertised train/test split is used with a deterministic validation partition drawn from its training split: **62 train, 19 validation, 90 test1, and 92 test2 encounters**. Test1 and test2 are reserved for evaluation. This split is not the original shared-task split; do not compare its numbers directly with the official leaderboard.
 
-An audit found invalid evidence IDs in **39 of 154 training orders** and **12 of 53 validation orders**. Affected training encounters are excluded from evidence-supervised training. Structurally valid IDs may still point to the wrong text, so evidence scores require human review. See [data audit](docs/DATA_AUDIT.md) and [methodology](docs/METHODOLOGY.md).
+An audit found invalid evidence IDs in **39 of 154 training orders** and **12 of 53 validation orders**. Affected training encounters are excluded from evidence-supervised training. Manual inspection also found an in-range reference pointing to an unrelated turn, so the mirror cannot currently support a trustworthy evidence-accuracy claim. See [data audit](docs/DATA_AUDIT.md) and [methodology](docs/METHODOLOGY.md).
 
 ## Run locally
 

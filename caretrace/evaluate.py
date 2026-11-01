@@ -88,7 +88,7 @@ def main():
                     "versions": {name: version(name) for name in ("datasets", "transformers", "torch")},
                     "code_commit": commit.stdout.strip() if commit.returncode == 0 else None,
                     "code_dirty": bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
-                    "metric_note": "Type plus token-F1 >= 0.5; greedy one-to-one matching. Not clinical accuracy."})
+                    "metric_note": "Type plus token-F1 >= 0.67 and matching digit strings; greedy one-to-one matching. Evidence ID overlap is unvalidated, not clinical accuracy."})
     (args.out / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     print(json.dumps(metrics, indent=2))
 

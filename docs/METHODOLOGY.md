@@ -20,8 +20,8 @@ Fix the prompt, model/checkpoint, maximum length, matching rules, and decoding s
 
 ## Metrics
 
-For a transparent automated proxy, pairs of gold and predicted orders are eligible for matching when order types agree and token-overlap F1 on descriptions is at least 0.5. Eligible pairs are greedily matched in descending overlap order. Aggregate order precision, recall, and F1 are micro scores over these matches. This is neither the official shared-task metric nor clinical semantic correctness: paraphrases may be missed and misleading partial matches may count.
+For a transparent automated proxy, pairs of gold and predicted orders are eligible for matching when order types agree, token-overlap F1 on descriptions is at least 0.67, and digit strings agree. Eligible pairs are greedily matched in descending overlap order. Aggregate order precision, recall, and F1 are micro scores over these matches. This is neither the official shared-task metric nor clinical semantic correctness: paraphrases and written-out numbers may be missed, and misleading partial matches may count.
 
-Evidence overlap is computed only on matched orders with structurally valid reference evidence. Invalid reference evidence is counted separately; matching a turn ID does not prove it supports an order. Report evidence precision/recall only with these caveats and independently check a sample with qualified reviewers if making any substantive clinical claims.
+Reference-ID overlap is computed only as a diagnostic on matched orders with structurally valid reference evidence. Invalid reference evidence is counted separately. The mirror's offset-based correction also produces some wrong in-range IDs, so this diagnostic is not a trustworthy evidence-accuracy score. Independently reannotate and adjudicate evidence before claiming grounding performance.
 
 Inspect errors by order type, historical/stopped medication, negation, follow-up, missing evidence, and unsupported inferred attributes. The dataset is small and synthetic; uncertainty estimates and real-world performance require more data and expert validation. Never report an improvement that was not measured.
