@@ -51,7 +51,7 @@ class TransformerEngine:
         self.tokenizer = AutoTokenizer.from_pretrained(model, **kwargs)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         dtype = torch.float16 if self.device == "cuda" else torch.float32
-        self.model = AutoModelForCausalLM.from_pretrained(model, torch_dtype=dtype, **kwargs).to(self.device).eval()
+        self.model = AutoModelForCausalLM.from_pretrained(model, torch_dtype=dtype, **kwargs).to(device=self.device, dtype=dtype).eval()
         self.lock = threading.Lock()
 
     def extract(self, turns: list[Turn]) -> list[dict]:

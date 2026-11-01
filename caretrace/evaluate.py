@@ -7,12 +7,27 @@ import hashlib
 import json
 import subprocess
 import time
+from importlib.metadata import version
 from pathlib import Path
 
 from .contracts import parse_enumerated
 from .data import get_dataset, rows_for
-from .engine import RuleEngine, TransformerEngine
+from .engine import MODEL_ID, MODEL_REVISION, RuleEngine, TransformerEngine
 from .metrics import aggregate, score_encounter
+
+
+def artifact_hash(path: Path) -> str:
+    digest = hashlib.sha256()
+    files = sorted(file for file in path.rglob("*") if file.is_file())
+    if not files:
+        raise ValueError("Model artifact contains no files")
+    for file in files:
+        digest.update(file.relative_to(path).as_posix().encode())
+        digest.update(b"\0")
+        with file.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+    return digest.hexdigest()
 
 
 def main():
@@ -61,8 +76,11 @@ def main():
     dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo, capture_output=True, text=True)
     metrics.update({"split": args.split, "limited": args.limit is not None,
                     "engine": engine.name, "parse_or_input_failures": failed,
+                    "model_revision": MODEL_REVISION if args.engine == MODEL_ID else None,
+                    "model_artifact_sha256": artifact_hash(Path(args.engine)) if Path(args.engine).is_dir() else None,
                     "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
                     "elapsed_seconds": round(time.perf_counter() - started, 2),
+                    "versions": {name: version(name) for name in ("datasets", "transformers", "torch")},
                     "code_commit": commit.stdout.strip() if commit.returncode == 0 else None,
                     "code_dirty": bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
                     "metric_note": "Type plus token-F1 >= 0.5; greedy one-to-one matching. Not clinical accuracy."})
