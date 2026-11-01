@@ -25,7 +25,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--learning-rate", type=float, default=2e-5)
     parser.add_argument("--gradient-accumulation", type=int, default=4)
-    parser.add_argument("--max-tokens", type=int, default=3072)
+    parser.add_argument("--max-tokens", type=int, default=4096)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--limit", type=int, help="Training smoke check; never a benchmark")
     args = parser.parse_args()
@@ -43,8 +43,6 @@ def main():
     torch.cuda.manual_seed_all(args.seed)
     manifest_bytes = args.manifest.read_bytes()
     rows = rows_for(get_dataset(), json.loads(manifest_bytes), "train")
-    if args.limit:
-        rows = rows[:args.limit]
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
     model = AutoModelForCausalLM.from_pretrained(MODEL_ID, revision=MODEL_REVISION,
                                                 torch_dtype=torch.float16).cuda()
@@ -78,6 +76,8 @@ def main():
             skipped.append(row["id"])
             continue
         examples.append((row["id"], prompt_ids, target_ids))
+    if args.limit:
+        examples = examples[:args.limit]
     if not examples:
         raise ValueError("No training examples fit the requested context length")
     optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=args.learning_rate)
