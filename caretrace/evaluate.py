@@ -10,9 +10,9 @@ import time
 from importlib.metadata import version
 from pathlib import Path
 
-from .contracts import parse_enumerated
+from .contracts import SYSTEM, parse_enumerated
 from .data import get_dataset, rows_for
-from .engine import MODEL_ID, MODEL_REVISION, RuleEngine, TransformerEngine
+from .engine import MODEL_ID, MODEL_REVISION, create_engine
 from .metrics import aggregate, score_encounter
 
 
@@ -52,11 +52,11 @@ def main():
     rows = rows_for(get_dataset(), manifest, args.split)
     if args.limit:
         rows = rows[:args.limit]
-    engine = RuleEngine() if args.engine == "rules" else TransformerEngine(args.engine)
+    engine = create_engine(args.engine)
     args.out.mkdir(parents=True)
     records, failed, started = [], 0, time.perf_counter()
     with (args.out / "predictions.jsonl").open("w", encoding="utf-8") as output:
-        for row in rows:
+        for index, row in enumerate(rows, 1):
             valid_turns = set()
             try:
                 turns = parse_enumerated(row["enumerated_transcript"])
@@ -70,14 +70,19 @@ def main():
             records.append(metrics)
             output.write(json.dumps({"id": row["id"], "prediction": predicted, "error": error,
                                      "counts": metrics}, ensure_ascii=False) + "\n")
+            output.flush()
+            if index % 5 == 0 or index == len(rows):
+                print(f"Processed {index}/{len(rows)} encounters; failures={failed}", flush=True)
     metrics = aggregate(records)
     repo = Path(__file__).resolve().parents[1]
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True)
     dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo, capture_output=True, text=True)
     metrics.update({"split": args.split, "limited": args.limit is not None,
                     "engine": engine.name, "parse_or_input_failures": failed,
+                    "ollama_model_digest": getattr(engine, "digest", None),
                     "model_revision": MODEL_REVISION if args.engine == MODEL_ID else None,
                     "model_artifact_sha256": artifact_hash(Path(args.engine)) if Path(args.engine).is_dir() else None,
+                    "system_prompt_sha256": hashlib.sha256(SYSTEM.encode()).hexdigest(),
                     "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
                     "elapsed_seconds": round(time.perf_counter() - started, 2),
                     "versions": {name: version(name) for name in ("datasets", "transformers", "torch")},

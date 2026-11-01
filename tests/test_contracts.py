@@ -1,7 +1,8 @@
 import unittest
 
 from caretrace.contracts import decode_json, parse_enumerated, parse_turns, validate_orders
-from caretrace.engine import RuleEngine
+from caretrace.engine import OllamaEngine, RuleEngine
+from unittest.mock import patch
 
 
 class ContractTests(unittest.TestCase):
@@ -36,6 +37,11 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(decode_json('```json\n{"orders": []}\n```'), {"orders": []})
         with self.assertRaises(ValueError):
             decode_json('Here are orders: {"orders": []}')
+
+    def test_model_endpoint_cannot_be_remote(self):
+        with patch.dict("os.environ", {"CARETRACE_OLLAMA_URL": "http://example.com:11434"}):
+            with self.assertRaisesRegex(ValueError, "loopback"):
+                OllamaEngine("qwen2.5:3b")
 
 
 if __name__ == "__main__":

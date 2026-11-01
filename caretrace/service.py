@@ -9,6 +9,7 @@ import time
 from collections import OrderedDict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.error import URLError
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -16,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from .contracts import parse_turns
-from .engine import RuleEngine, TransformerEngine
+from .engine import create_engine
 
 WEB = Path(__file__).resolve().parent.parent / "web"
 MAX_BODY = 64 * 1024
@@ -47,7 +48,7 @@ def create_app(engine=None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         selected = os.getenv("CARETRACE_MODEL", "rules")
-        app.state.engine = engine or (RuleEngine() if selected == "rules" else TransformerEngine(selected))
+        app.state.engine = engine or create_engine(selected)
         app.state.slot = asyncio.Semaphore(1)
         app.state.limiter = RateLimiter()
         yield
@@ -108,6 +109,8 @@ def create_app(engine=None) -> FastAPI:
                 orders = await run_in_threadpool(request.app.state.engine.extract, turns)
             except (ValueError, json.JSONDecodeError) as exc:
                 raise HTTPException(422, f"Could not extract orders: {exc}") from exc
+            except (URLError, TimeoutError, OSError) as exc:
+                raise HTTPException(503, "The local model service is unavailable.") from exc
         return {"engine": request.app.state.engine.name, "orders": orders,
                 "research_only": True, "note": "Evidence links require human review."}
 

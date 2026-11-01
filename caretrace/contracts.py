@@ -69,7 +69,10 @@ SYSTEM = (
     "Return a JSON object with an orders array. Each order has order_type (medication, lab, "
     "imaging, or followup), description, reason (string or null), and provenance (list of "
     "integer turn numbers). Include supporting turns. Do not invent details or include "
-    "historical, stopped, rejected, or merely hypothetical orders. If none, return {\"orders\":[]}."
+    "historical, stopped, rejected, or merely hypothetical orders. Include a medication only "
+    "if it is explicitly ordered or renewed. Do not infer a dose, timing, or clinical reason; "
+    "set reason to null unless explicitly stated. Cite turns supporting the action. "
+    "If none, return {\"orders\":[]}."
 )
 
 
@@ -97,7 +100,7 @@ def validate_orders(raw: object, turns: list[Turn]) -> list[dict]:
             raise ValueError("An order has an invalid type or description.")
         if reason is not None and (not isinstance(reason, str) or len(reason) > 500):
             raise ValueError("An order has an invalid reason.")
-        if not isinstance(provenance, list) or any(type(x) is not int or x < 1 for x in provenance):
+        if not isinstance(provenance, list) or len(provenance) > 64 or any(type(x) is not int or x < 1 for x in provenance):
             raise ValueError("Evidence must be a list of positive turn IDs.")
         evidence = list(dict.fromkeys(provenance))
         missing = [x for x in evidence if x not in known]

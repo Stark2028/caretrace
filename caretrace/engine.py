@@ -3,14 +3,23 @@
 from __future__ import annotations
 
 import os
+import json
 import re
 import threading
 from pathlib import Path
+from urllib.parse import urlsplit
+from urllib.request import ProxyHandler, Request, build_opener
 
 from .contracts import Turn, decode_json, prompt_messages, validate_orders
 
 MODEL_ID = "Qwen/Qwen2.5-0.5B-Instruct"
 MODEL_REVISION = "7ae557604adf67be50417f59c2c2f167def9a775"
+ORDER_SCHEMA = {"type": "object", "properties": {"orders": {"type": "array", "maxItems": 30,
+    "items": {"type": "object", "properties": {
+        "order_type": {"type": "string", "enum": ["medication", "lab", "imaging", "followup"]},
+        "description": {"type": "string"}, "reason": {"type": ["string", "null"]},
+        "provenance": {"type": "array", "items": {"type": "integer"}}},
+        "required": ["order_type", "description", "reason", "provenance"]}}}, "required": ["orders"]}
 
 
 class RuleEngine:
@@ -67,3 +76,55 @@ class TransformerEngine:
                                          pad_token_id=self.tokenizer.eos_token_id)
         answer = self.tokenizer.decode(result[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
         return validate_orders(decode_json(answer), turns)
+
+
+class OllamaEngine:
+    """Loopback-only local Qwen inference with schema-constrained decoding."""
+
+    def __init__(self, model: str):
+        if model != "qwen2.5:3b":
+            raise ValueError("The Ollama adapter currently supports qwen2.5:3b only.")
+        self.url = os.getenv("CARETRACE_OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+        parsed = urlsplit(self.url)
+        if parsed.scheme != "http" or parsed.hostname not in {"localhost", "127.0.0.1", "::1"} or parsed.path or parsed.query or parsed.fragment or parsed.username:
+            raise ValueError("Ollama must use a local loopback HTTP URL.")
+        from transformers import AutoTokenizer
+        self.model = model
+        self.name = f"ollama:{model}"
+        self.opener = build_opener(ProxyHandler({}))
+        tokenizer_path = os.getenv("CARETRACE_TOKENIZER_PATH")
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path or MODEL_ID,
+                                                      **({} if tokenizer_path else {"revision": MODEL_REVISION}))
+        with self.opener.open(self.url + "/api/tags", timeout=10) as response:
+            tags = json.load(response).get("models", [])
+        found = next((item for item in tags if item.get("name") == model), None)
+        if found is None:
+            raise ValueError(f"Local Ollama model {model} is unavailable.")
+        self.digest = found.get("digest")
+        if not self.digest:
+            raise ValueError("Local Ollama model did not provide an artifact digest.")
+        self.lock = threading.Lock()
+
+    def extract(self, turns: list[Turn]) -> list[dict]:
+        messages = prompt_messages(turns)
+        count = len(self.tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True))
+        # Reserve output and template overhead so the server never silently trims history.
+        if count + 1024 > 8192:
+            raise ValueError("Transcript exceeds the model context limit; shorten it before retrying.")
+        payload = {"model": self.model, "messages": messages, "stream": False, "format": ORDER_SCHEMA,
+                   "options": {"temperature": 0, "seed": 42, "num_ctx": 8192, "num_predict": 768}}
+        request = Request(self.url + "/api/chat", data=json.dumps(payload).encode(),
+                          headers={"Content-Type": "application/json"}, method="POST")
+        with self.lock, self.opener.open(request, timeout=240) as response:
+            data = json.load(response)
+        if data.get("done_reason") == "length":
+            raise ValueError("Model output reached its limit; shorten the transcript and retry.")
+        return validate_orders(decode_json(data["message"]["content"]), turns)
+
+
+def create_engine(selection: str):
+    if selection == "rules":
+        return RuleEngine()
+    if selection.startswith("ollama:"):
+        return OllamaEngine(selection.removeprefix("ollama:"))
+    return TransformerEngine(selection)

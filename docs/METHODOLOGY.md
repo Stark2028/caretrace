@@ -12,7 +12,9 @@ The mirror's evidence IDs have significant structural errors; see `DATA_AUDIT.md
 
 ## Model and comparisons
 
-The transparent baseline uses conservative text patterns in clinician turns. It cannot cover all linguistic forms and currently makes no medication predictions. The optional model is Qwen2.5 0.5B Instruct at pinned commit `7ae557604adf67be50417f59c2c2f167def9a775`. The training script freezes the model except the final Transformer block and final normalization layer; it uses the training partition only and saves skipped examples, configuration, GPU memory, code commit, and worktree status. It performs teacher-forced next-token loss over the JSON answer tokens only.
+The transparent baseline uses conservative text patterns in clinician turns. It cannot cover all linguistic forms and currently makes no medication predictions. One experimental model is Qwen2.5 0.5B Instruct at pinned commit `7ae557604adf67be50417f59c2c2f167def9a775`. The training script freezes the model except the final Transformer block and final normalization layer; it uses the training partition only and saves skipped examples, configuration, GPU memory, code commit, and worktree status. It performs teacher-forced next-token loss over the JSON answer tokens only.
+
+A separate optional comparison uses a local Ollama `qwen2.5:3b` model with schema-constrained decoding, temperature 0, seed 42, 8,192 context tokens, and up to 768 output tokens. Its model digest is recorded. It is a different model and decoding setup; any difference cannot be attributed to fine-tuning alone. An in-range source turn is not proof of support, and the schema cannot prevent hallucinated content. The tokenizer context check reserves 1,024 tokens for generation and template overhead.
 
 Fix the prompt, model/checkpoint, maximum length, matching rules, and decoding settings before held-out evaluation. Model outputs that fail parsing or schema validation are counted as failures and yield no predicted orders for that encounter. Do not silently retry malformed outputs on test. Use the same settings for both models and record version/hash provenance.
 

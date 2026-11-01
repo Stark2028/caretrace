@@ -49,7 +49,7 @@ The response contains the engine, candidate orders, evidence turn IDs, an eviden
 
 ## Reproduce the experiments
 
-Install a [CUDA-enabled PyTorch build](https://pytorch.org/get-started/locally/) suitable for your machine, then install `requirements-ml.txt`. The pinned model is [`Qwen/Qwen2.5-0.5B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) at `7ae557604adf67be50417f59c2c2f167def9a775`. The dataset revision is `a5e570d7512cd36e64b6e4b03d2800ee6fcec86b`.
+Install a [CUDA-enabled PyTorch build](https://pytorch.org/get-started/locally/) suitable for your machine, then install `requirements-ml.txt`. The pinned model for the partial fine-tuning experiment is [`Qwen/Qwen2.5-0.5B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) at `7ae557604adf67be50417f59c2c2f167def9a775`. The dataset revision is `a5e570d7512cd36e64b6e4b03d2800ee6fcec86b`.
 
 ```bash
 python -m pip install -r requirements-ml.txt
@@ -65,7 +65,9 @@ Training updates only the final Transformer block and final normalization layer;
 
 Select and freeze the method using validation only. Then `--split test2 --final-test` scores the full held-out split; `--limit` is prohibited on test splits. The automated score is a **lexical matching proxy**, not clinical accuracy or the official MEDIQA-OE score. Details and results are in [RESULTS.md](RESULTS.md).
 
-To run a local Transformers engine, install both the service and ML dependencies plus PyTorch, then set `CARETRACE_MODEL` to the pinned base model ID or a saved checkpoint directory before starting Uvicorn. The model can produce malformed JSON; those failures are reported, not replaced with invented orders. The standard Docker image intentionally runs the rule baseline and does not include model weights.
+To run a local Transformers engine, install both the service and ML dependencies plus PyTorch, then set `CARETRACE_MODEL` to the pinned base model ID or a saved checkpoint directory before starting Uvicorn. The model can produce malformed JSON; those failures are reported, not replaced with invented orders.
+
+An optional local Ollama adapter supports `qwen2.5:3b`. Install the ML dependencies, make that model available to Ollama, start Ollama on loopback, and set `CARETRACE_MODEL=ollama:qwen2.5:3b`. `CARETRACE_OLLAMA_URL` defaults to `http://127.0.0.1:11434` and rejects remote hosts. The adapter checks prompt length using the pinned Qwen tokenizer and asks Ollama for schema-constrained JSON. It records the local model digest during evaluation. Schema compliance and valid turn numbers do **not** guarantee factual correctness. The standard Docker image runs the rule baseline and includes no model weights.
 
 ## Container
 

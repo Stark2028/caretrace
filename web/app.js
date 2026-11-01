@@ -87,15 +87,18 @@ extract.addEventListener('click', async () => {
   if (!input.value.trim()) { message.textContent = 'Enter a simulated conversation or load the example.'; input.focus(); return; }
   extract.disabled = true; extract.textContent = 'Extracting…'; message.textContent = '';
   const submitted = input.value;
+  analyzedText = null; sourceSection.hidden = true; sourceTurns.replaceChildren(); results.replaceChildren();
+  const loading = make('div', 'empty compact'); loading.append(make('h3', '', 'Reviewing conversation…'));
+  results.append(loading);
   try {
     const response = await fetch('/api/v1/extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript: submitted }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || 'The request could not be completed.');
-    if (input.value !== submitted) { message.textContent = 'Conversation changed during extraction. Extract again.'; return; }
+    if (input.value !== submitted) { results.replaceChildren(make('p', 'helper', 'Conversation changed. Extract again.')); message.textContent = 'Conversation changed during extraction. Extract again.'; return; }
     engine.textContent = data.engine === 'rules-v1' ? 'RULE BASELINE' : 'LOCAL MODEL';
     analyzedText = submitted; renderTurns(turnLines(submitted)); renderOrders(data);
     message.textContent = `${data.orders.length} proposed ${data.orders.length === 1 ? 'order' : 'orders'} · Review every item.`;
-  } catch (error) { message.textContent = error.message || 'The service is unavailable. Try again.'; }
+  } catch (error) { results.replaceChildren(make('p', 'helper', 'No results available.')); message.textContent = error.message || 'The service is unavailable. Try again.'; }
   finally { extract.disabled = false; extract.innerHTML = 'Extract orders <span aria-hidden="true">→</span>'; }
 });
 
