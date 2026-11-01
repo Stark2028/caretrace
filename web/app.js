@@ -16,6 +16,7 @@ Doctor: We can book a follow-up next week to review the results.`;
 
 let analyzedText = null;
 function updateCount() { count.textContent = `${input.value.length.toLocaleString()} / 40,000 characters`; }
+function engineLabel(name) { return name === 'source-v1' ? 'SOURCE EXTRACTOR' : name === 'rules-v1' ? 'RULE BASELINE' : 'LOCAL MODEL'; }
 function invalidateResults() {
   if (analyzedText !== null && input.value !== analyzedText) {
     analyzedText = null; sourceSection.hidden = true; sourceTurns.replaceChildren(); results.replaceChildren();
@@ -29,7 +30,7 @@ document.querySelector('#example').addEventListener('click', () => { input.value
 
 function turnLines(text) {
   return text.split(/\r?\n/).filter(line => line.trim()).map((line, index) => {
-    const match = line.trim().match(/^(?:(\d+)\s+)?(?:\[\s*(doctor|clinician|patient)\s*\]|(doctor|clinician|patient)\s*:)\s*(.+)$/i);
+    const match = line.trim().match(/^(?:(\d+)\s+)?(?:\[\s*(doctor|clinician|patient|patient_guest|guest|unknown)\s*\]|(doctor|clinician|patient|guest|unknown)\s*:)\s*(.+)$/i);
     return match ? { id: Number(match[1] || index + 1), speaker: match[2] || match[3], text: match[4] } : null;
   }).filter(Boolean);
 }
@@ -57,6 +58,7 @@ function renderOrders(data) {
     const card = make('article', 'order');
     const head = make('div', 'order-head'); head.append(make('span', 'order-type', order.order_type.toUpperCase()), make('span', 'order-index', String(index + 1).padStart(2, '0')));
     card.append(head, make('h3', '', order.description));
+    if (order.origin === 'verbatim_source') card.append(make('p', 'order-reason', 'Verbatim source excerpt · Intent requires review'));
     if (order.reason) card.append(make('p', 'order-reason', `Reason: ${order.reason}`));
     const links = make('div', 'evidence-links'); links.append(make('span', 'evidence-label', 'SOURCE TURNS'));
     if (!order.provenance.length) links.append(make('span', 'warning', 'No source linked'));
@@ -95,7 +97,7 @@ extract.addEventListener('click', async () => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || 'The request could not be completed.');
     if (input.value !== submitted) { results.replaceChildren(make('p', 'helper', 'Conversation changed. Extract again.')); message.textContent = 'Conversation changed during extraction. Extract again.'; return; }
-    engine.textContent = data.engine === 'rules-v1' ? 'RULE BASELINE' : 'LOCAL MODEL';
+    engine.textContent = engineLabel(data.engine);
     analyzedText = submitted; renderTurns(turnLines(submitted)); renderOrders(data);
     message.textContent = `${data.orders.length} proposed ${data.orders.length === 1 ? 'order' : 'orders'} · Review every item.`;
   } catch (error) { results.replaceChildren(make('p', 'helper', 'No results available.')); message.textContent = error.message || 'The service is unavailable. Try again.'; }
@@ -103,5 +105,5 @@ extract.addEventListener('click', async () => {
 });
 
 fetch('/health/ready').then(response => response.json()).then(data => {
-  engine.textContent = data.engine === 'rules-v1' ? 'RULE BASELINE' : 'LOCAL MODEL';
+  engine.textContent = engineLabel(data.engine);
 }).catch(() => { engine.textContent = 'ENGINE UNAVAILABLE'; });

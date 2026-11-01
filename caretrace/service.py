@@ -47,7 +47,7 @@ class RateLimiter:
 def create_app(engine=None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        selected = os.getenv("CARETRACE_MODEL", "rules")
+        selected = os.getenv("CARETRACE_MODEL", "source")
         app.state.engine = engine or create_engine(selected)
         app.state.slot = asyncio.Semaphore(1)
         app.state.limiter = RateLimiter()

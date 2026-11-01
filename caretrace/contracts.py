@@ -26,14 +26,15 @@ def parse_turns(text: str) -> list[Turn]:
     if len(lines) > MAX_TURNS:
         raise ValueError(f"Use at most {MAX_TURNS} turns.")
     turns = []
-    pattern = re.compile(r"^(?:(\d+)\s+)?(?:\[\s*(doctor|clinician|patient)\s*\]|(doctor|clinician|patient)\s*:)\s*(.+)$", re.I)
+    pattern = re.compile(r"^(?:(\d+)\s+)?(?:\[\s*(doctor|clinician|patient|patient_guest|guest|unknown)\s*\]|(doctor|clinician|patient|guest|unknown)\s*:)\s*(.+)$", re.I)
     for position, line in enumerate(lines, 1):
         match = pattern.match(line)
         if not match:
             raise ValueError(f"Line {position}: start with 'Doctor:' or 'Patient:'.")
         number, bracketed, named, content = match.groups()
         speaker = (bracketed or named).lower()
-        turns.append(Turn(int(number or position), "doctor" if speaker == "clinician" else speaker, content.strip()))
+        speaker = {"clinician": "doctor", "patient_guest": "guest"}.get(speaker, speaker)
+        turns.append(Turn(int(number or position), speaker, content.strip()))
     ids = [turn.id for turn in turns]
     if any(identifier < 1 for identifier in ids) or len(ids) != len(set(ids)):
         raise ValueError("Turn numbers must be positive and unique.")
@@ -46,15 +47,21 @@ def format_turns(turns: list[Turn]) -> str:
 
 def parse_enumerated(text: str) -> list[Turn]:
     """Read SIMORD turns, including empty turns and multiline source utterances."""
-    pattern = re.compile(r"^\s*(\d+)\s+\[(doctor|patient)\]\s*(.*)$", re.I)
+    pattern = re.compile(r"^\s*(\d+)\s+\[\s*([^]]+)\s*\]\s*(.*)$", re.I)
     turns: list[Turn] = []
     for line in text.splitlines():
         match = pattern.match(line)
         if match:
             number, speaker, content = match.groups()
-            turns.append(Turn(int(number), speaker.lower(), content.strip()))
-        elif re.match(r"^\s*\d+\s+\[[^]]+\]", line):
-            raise ValueError("Dataset contains an unsupported speaker label")
+            role = speaker.strip().lower()
+            role = {"patient_guest": "guest", "clinician": "doctor"}.get(role, role)
+            if role not in {"doctor", "patient", "guest", "unknown"}:
+                content = f"[{speaker.strip()}] {content}".strip()
+                role = "unknown"
+            turns.append(Turn(int(number), role, content.strip()))
+        elif not turns and re.match(r"^\s*\d+\s+\S", line):
+            number, content = line.strip().split(maxsplit=1)
+            turns.append(Turn(int(number), "unknown", content))
         elif line.strip() and turns:
             previous = turns[-1]
             turns[-1] = Turn(previous.id, previous.speaker, (previous.text + " " + line.strip()).strip())

@@ -55,6 +55,7 @@ def main():
     engine = create_engine(args.engine)
     args.out.mkdir(parents=True)
     records, failed, started = [], 0, time.perf_counter()
+    spans_checked, spans_exact = 0, 0
     with (args.out / "predictions.jsonl").open("w", encoding="utf-8") as output:
         for index, row in enumerate(rows, 1):
             valid_turns = set()
@@ -67,6 +68,12 @@ def main():
                 predicted, error = [], str(exc)
                 failed += 1
             metrics = score_encounter(row["orders"], predicted, valid_turns=valid_turns)
+            source_text = {turn.id: turn.text for turn in turns} if valid_turns else {}
+            for item in predicted:
+                if item.get("origin") == "verbatim_source":
+                    spans_checked += 1
+                    span = item["source_span"]
+                    spans_exact += source_text.get(span["turn_id"], "")[span["start"]:span["end"]] == item["description"]
             records.append(metrics)
             output.write(json.dumps({"id": row["id"], "prediction": predicted, "error": error,
                                      "counts": metrics}, ensure_ascii=False) + "\n")
@@ -78,6 +85,7 @@ def main():
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True)
     dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo, capture_output=True, text=True)
     metrics.update({"split": args.split, "limited": args.limit is not None,
+                    "source_spans_checked": spans_checked, "source_spans_exact": spans_exact,
                     "engine": engine.name, "parse_or_input_failures": failed,
                     "ollama_model_digest": getattr(engine, "digest", None),
                     "model_revision": MODEL_REVISION if args.engine == MODEL_ID else None,

@@ -119,10 +119,16 @@ class OllamaEngine:
             data = json.load(response)
         if data.get("done_reason") == "length":
             raise ValueError("Model output reached its limit; shorten the transcript and retry.")
-        return validate_orders(decode_json(data["message"]["content"]), turns)
+        message = data.get("message", {})
+        if not isinstance(message, dict) or not isinstance(message.get("content"), str):
+            raise ValueError("Local model returned an invalid response envelope.")
+        return validate_orders(decode_json(message["content"]), turns)
 
 
 def create_engine(selection: str):
+    if selection == "source":
+        from .extractive import ExtractiveEngine
+        return ExtractiveEngine()
     if selection == "rules":
         return RuleEngine()
     if selection.startswith("ollama:"):
