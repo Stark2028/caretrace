@@ -63,7 +63,7 @@ python -m caretrace.evaluate --manifest runs/manifest.json --split validation --
 
 Training updates only the final Transformer block and final normalization layer; it is **partial fine-tuning**, not LoRA. It excludes encounters with out-of-range or missing reference evidence and records exclusions, settings, GPU, model revision, and peak memory. Context-length exclusions are also recorded. Run a small smoke check with `--limit 4` first, using a different output directory.
 
-Select and freeze the method using validation only. Then `--split test2 --final-test` scores the full held-out split; `--limit` is prohibited on test splits. The automated score is a **lexical matching proxy**, not clinical accuracy or the official MEDIQA-OE score. Details and results are in [RESULTS.md](RESULTS.md).
+Select and freeze the method using validation only. Then `--split test2 --final-test` scores the full held-out split; `--limit` is prohibited on test splits. The automated score is a **lexical matching proxy**, not clinical accuracy or the official MEDIQA-OE score. The [test protocol](docs/TEST_PROTOCOL.md) fixes the selected model, prompt, and metric; details and results are in [RESULTS.md](RESULTS.md).
 
 To run a local Transformers engine, install both the service and ML dependencies plus PyTorch, then set `CARETRACE_MODEL` to the pinned base model ID or a saved checkpoint directory before starting Uvicorn. The model can produce malformed JSON; those failures are reported, not replaced with invented orders.
 
@@ -84,7 +84,7 @@ The container listens on `127.0.0.1:8000`, runs as a non-root user with a read-o
 | `caretrace/contracts.py` | Transcript parsing, response validation, and evidence status |
 | `caretrace/engine.py` | Rule baseline and optional local Transformers engine |
 | `caretrace/data.py`, `audit.py` | Pinned dataset, split manifest, and evidence audit |
-| `caretrace/train.py`, `evaluate.py`, `metrics.py` | Partial fine-tuning and reproducible evaluation |
+| `caretrace/train.py`, `evaluate.py`, `metrics.py`, `compare.py` | Partial fine-tuning, evaluation, and paired comparison |
 | `caretrace/service.py`, `web/` | Bounded API and evidence review interface |
 | `tests/` | Offline tests for parsing, matching, API limits, and review behavior |
 | `docs/` | Data provenance, method, and deployment context |
