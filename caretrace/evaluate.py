@@ -1,0 +1,74 @@
+"""Evaluate on a frozen split; never ignore malformed or missing predictions."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import subprocess
+import time
+from pathlib import Path
+
+from .contracts import parse_enumerated
+from .data import get_dataset, rows_for
+from .engine import RuleEngine, TransformerEngine
+from .metrics import aggregate, score_encounter
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--split", choices=("validation", "test1", "test2"), required=True)
+    parser.add_argument("--final-test", action="store_true")
+    parser.add_argument("--engine", default="rules")
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args()
+    if args.split.startswith("test") and (not args.final_test or args.limit is not None):
+        parser.error("Test scoring requires --final-test and prohibits --limit")
+    if args.final_test and args.split == "validation":
+        parser.error("--final-test requires a test split")
+    if args.limit is not None and args.limit < 1:
+        parser.error("--limit must be positive")
+    if args.out.exists():
+        parser.error("Output path exists")
+    manifest_bytes = args.manifest.read_bytes()
+    manifest = json.loads(manifest_bytes)
+    rows = rows_for(get_dataset(), manifest, args.split)
+    if args.limit:
+        rows = rows[:args.limit]
+    engine = RuleEngine() if args.engine == "rules" else TransformerEngine(args.engine)
+    args.out.mkdir(parents=True)
+    records, failed, started = [], 0, time.perf_counter()
+    with (args.out / "predictions.jsonl").open("w", encoding="utf-8") as output:
+        for row in rows:
+            valid_turns = set()
+            try:
+                turns = parse_enumerated(row["enumerated_transcript"])
+                valid_turns = {turn.id for turn in turns}
+                predicted = engine.extract(turns)
+                error = None
+            except (ValueError, json.JSONDecodeError) as exc:
+                predicted, error = [], str(exc)
+                failed += 1
+            metrics = score_encounter(row["orders"], predicted, valid_turns=valid_turns)
+            records.append(metrics)
+            output.write(json.dumps({"id": row["id"], "prediction": predicted, "error": error,
+                                     "counts": metrics}, ensure_ascii=False) + "\n")
+    metrics = aggregate(records)
+    repo = Path(__file__).resolve().parents[1]
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True)
+    dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=repo, capture_output=True, text=True)
+    metrics.update({"split": args.split, "limited": args.limit is not None,
+                    "engine": engine.name, "parse_or_input_failures": failed,
+                    "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                    "elapsed_seconds": round(time.perf_counter() - started, 2),
+                    "code_commit": commit.stdout.strip() if commit.returncode == 0 else None,
+                    "code_dirty": bool(dirty.stdout.strip()) if dirty.returncode == 0 else None,
+                    "metric_note": "Type plus token-F1 >= 0.5; greedy one-to-one matching. Not clinical accuracy."})
+    (args.out / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    print(json.dumps(metrics, indent=2))
+
+
+if __name__ == "__main__":
+    main()

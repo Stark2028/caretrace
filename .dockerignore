@@ -1,0 +1,10 @@
+.git
+.cache
+.venv
+.tmp
+__pycache__
+data
+runs
+checkpoints
+tests
+*.md

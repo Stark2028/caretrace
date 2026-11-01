@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ef">
+  <meta name="description" content="A research workspace for reviewing orders extracted from simulated consultations.">
+  <title>CareTrace — Evidence review</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script defer src="/assets/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="CareTrace home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h4l2-5 4 10 2-5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>CareTrace <small>research workspace</small></span></a>
+    <span class="top-note"><span class="status-dot"></span> Simulated data only</span>
+  </header>
+  <main>
+    <div class="intro">
+      <div><p class="breadcrumb">Clinical NLP / Order extraction</p><h1>Review what the<br><em>conversation supports.</em></h1><p class="intro-copy">Extract proposed orders from a simulated consultation, then follow each item back to its source turns.</p></div>
+      <aside class="research-note"><strong>Research prototype</strong><p>Outputs need human review. Use invented or public simulated dialogue; never enter patient information.</p></aside>
+    </div>
+    <div class="workspace">
+      <section class="panel input-panel" aria-labelledby="input-title">
+        <div class="panel-heading"><div><span class="step">01 / INPUT</span><h2 id="input-title">Consultation</h2></div><button type="button" class="text-button" id="example">Load example <span aria-hidden="true">↗</span></button></div>
+        <p class="helper">One turn per line, beginning with <strong>Doctor:</strong> or <strong>Patient:</strong>.</p>
+        <label for="transcript" class="sr-only">Simulated consultation transcript</label>
+        <textarea id="transcript" spellcheck="true" maxlength="40000" placeholder="Doctor: What brings you in today?&#10;Patient: ..."></textarea>
+        <div class="input-bottom"><span id="count">0 / 40,000 characters</span><button id="extract" class="primary" type="button">Extract orders <span aria-hidden="true">→</span></button></div>
+        <p class="form-message" id="message" role="status" aria-live="polite"></p>
+      </section>
+      <section class="panel result-panel" aria-labelledby="result-title">
+        <div class="panel-heading"><div><span class="step">02 / REVIEW</span><h2 id="result-title">Proposed orders</h2></div><span class="engine" id="engine">Checking engine…</span></div>
+        <p class="helper">Select an evidence turn to inspect the source. Review marks stay in this page only; links need human judgment.</p>
+        <div id="results" class="results" aria-live="polite"><div class="empty"><span class="empty-icon" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M10 8h15l5 5v19H10zM25 8v6h5M15 19h10M15 24h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><h3>Ready for a conversation</h3><p>Load the example or enter your own simulated dialogue to review its proposed orders.</p></div></div>
+      </section>
+    </div>
+    <section id="evidence-section" class="evidence-section" hidden aria-labelledby="evidence-title">
+      <div class="evidence-header"><div><span class="step">03 / SOURCE</span><h2 id="evidence-title">Conversation evidence</h2></div><p>Selected turns are highlighted below.</p></div>
+      <ol id="source-turns" class="source-turns"></ol>
+    </section>
+    <footer><span>CareTrace <span class="footer-sep">/</span> Conversation-grounded NLP</span><span>Research only · No diagnosis or prescribing</span></footer>
+  </main>
+</body>
+</html>

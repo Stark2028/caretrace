@@ -1,0 +1,12 @@
+.venv/
+.cache/
+.tmp/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+data/
+runs/
+checkpoints/
+*.log
